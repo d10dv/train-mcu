@@ -1,0 +1,21 @@
+menu "Train MCU Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "TrainControl"
+        help
+            SSID of the WiFi network to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "train1234"
+        help
+            Password of the WiFi network to connect to.
+
+    config ESP_MQTT_BROKER_URL
+        string "MQTT Broker URL"
+        default "mqtt://192.168.4.1:1883"
+        help
+            URL of the MQTT broker.
+
+endmenu

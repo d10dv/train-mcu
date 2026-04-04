@@ -1,0 +1,17 @@
+# ESP-IDF build directory
+build/
+
+# Managed components
+managed_components/
+dependencies.lock
+
+# Local config
+sdkconfig
+sdkconfig.old
+
+# Python
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
