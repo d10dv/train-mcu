@@ -51,9 +51,11 @@ static void motor_task(void *pvParameters)
     s_last_feed_time = xTaskGetTickCount();
     while (1) {
         if (s_safety_enabled && s_current_speed > 0) {
-            if ((xTaskGetTickCount() - s_last_feed_time) > pdMS_TO_TICKS(5000)) {
-                ESP_LOGW(TAG, "Safety stop: connection lost!");
-                s_target_speed = 0;
+            if ((xTaskGetTickCount() - s_last_feed_time) > pdMS_TO_TICKS(10000)) {
+                if (s_target_speed != 0) {
+                    ESP_LOGW(TAG, "Safety stop: connection lost!");
+                    s_target_speed = 0;
+                }
             }
         }
 
