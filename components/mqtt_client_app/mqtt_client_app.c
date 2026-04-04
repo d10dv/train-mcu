@@ -9,6 +9,7 @@
 static const char *TAG = "MQTT_CLIENT_APP";
 static esp_mqtt_client_handle_t client;
 static char s_train_id[32];
+static char s_lwt_msg[128];
 static char s_cmd_topic[64];
 static char s_ping_topic[64];
 
@@ -80,12 +81,17 @@ esp_err_t mqtt_app_start(const char* train_id)
     snprintf(s_cmd_topic, sizeof(s_cmd_topic), "train/%s/cmd", s_train_id);
     snprintf(s_ping_topic, sizeof(s_ping_topic), "train/%s/ping", s_train_id);
 
+    snprintf(s_lwt_msg, sizeof(s_lwt_msg),
+             "{\"id\":\"%s\",\"model\":\"train-mcu\",\"fw\":\"1.0.0\",\"online\":false}",
+             s_train_id);
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = CONFIG_ESP_MQTT_BROKER_URL,
         .session.last_will.topic = "train/announce",
-        .session.last_will.msg = "",
+        .session.last_will.msg = s_lwt_msg,
         .session.last_will.qos = 0,
         .session.last_will.retain = 1,
+        .session.keepalive = 15,
     };
 
     client = esp_mqtt_client_init(&mqtt_cfg);
