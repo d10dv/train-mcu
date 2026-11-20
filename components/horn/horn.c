@@ -6,7 +6,7 @@
 
 static const char *TAG = "HORN";
 
-#define HORN_GPIO 19
+#define HORN_GPIO 14
 #define HORN_TIMER              LEDC_TIMER_1
 #define HORN_MODE               LEDC_LOW_SPEED_MODE
 #define HORN_CHANNEL            LEDC_CHANNEL_1

@@ -9,13 +9,20 @@
 
 static const char *TAG = "MOTOR_DRIVER";
 
-#define MOTOR_IN1_GPIO 25
-#define MOTOR_IN2_GPIO 26
-#define MOTOR_ENA_GPIO 27
+// Motor 1 (L298N channel 1)
+#define MOTOR1_IN1_GPIO 25
+#define MOTOR1_IN2_GPIO 26
+#define MOTOR1_EN_GPIO  27
+
+// Motor 2 (L298N channel 2)
+#define MOTOR2_IN1_GPIO 18
+#define MOTOR2_IN2_GPIO 19
+#define MOTOR2_EN_GPIO  17
 
 #define LEDC_TIMER              LEDC_TIMER_0
 #define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define LEDC_CHANNEL            LEDC_CHANNEL_0
+#define LEDC_CHANNEL_M1         LEDC_CHANNEL_0
+#define LEDC_CHANNEL_M2         LEDC_CHANNEL_2
 #define LEDC_DUTY_RES           LEDC_TIMER_10_BIT // 0-1023
 #define LEDC_FREQUENCY          (5000) // 5 kHz
 
@@ -27,23 +34,30 @@ static bool s_safety_enabled = true;
 
 static void motor_update_hw(void)
 {
-    if (s_current_speed == 0) {
-        gpio_set_level(MOTOR_IN1_GPIO, 0);
-        gpio_set_level(MOTOR_IN2_GPIO, 0);
-    } else {
+    int in1 = 0, in2 = 0;
+    if (s_current_speed > 0) {
         if (s_direction == DIRECTION_FORWARD) {
-            gpio_set_level(MOTOR_IN1_GPIO, 1);
-            gpio_set_level(MOTOR_IN2_GPIO, 0);
+            in1 = 1;
+            in2 = 0;
         } else {
-            gpio_set_level(MOTOR_IN1_GPIO, 0);
-            gpio_set_level(MOTOR_IN2_GPIO, 1);
+            in1 = 0;
+            in2 = 1;
         }
     }
+    // Both motors are driven synchronously from the same command
+    gpio_set_level(MOTOR1_IN1_GPIO, in1);
+    gpio_set_level(MOTOR1_IN2_GPIO, in2);
+    gpio_set_level(MOTOR2_IN1_GPIO, in1);
+    gpio_set_level(MOTOR2_IN2_GPIO, in2);
 
     const train_config_t* cfg = train_config_get();
     uint32_t duty = (s_current_speed * ((1 << LEDC_DUTY_RES) - 1) * cfg->max_speed) / 10000;
-    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty);
-    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_M1, duty);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_M1);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_M2, duty);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_M2);
+    ESP_LOGI(TAG, "HW update: speed=%d dir=%s duty=%u (both motors)", s_current_speed,
+             (s_direction == DIRECTION_FORWARD) ? "FWD" : "REV", duty);
 }
 
 static void motor_task(void *pvParameters)
@@ -61,7 +75,7 @@ static void motor_task(void *pvParameters)
 
         const train_config_t* cfg = train_config_get();
         int rate = (s_target_speed > s_current_speed) ? cfg->accel_rate : cfg->decel_rate;
-        
+
         if (s_current_speed != s_target_speed) {
             if (abs(s_target_speed - s_current_speed) <= rate) {
                 s_current_speed = s_target_speed;
@@ -79,7 +93,8 @@ esp_err_t motor_driver_init(void)
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = (1ULL << MOTOR_IN1_GPIO) | (1ULL << MOTOR_IN2_GPIO),
+        .pin_bit_mask = (1ULL << MOTOR1_IN1_GPIO) | (1ULL << MOTOR1_IN2_GPIO)
+                      | (1ULL << MOTOR2_IN1_GPIO) | (1ULL << MOTOR2_IN2_GPIO),
         .pull_down_en = 0,
         .pull_up_en = 0
     };
@@ -96,14 +111,23 @@ esp_err_t motor_driver_init(void)
 
     ledc_channel_config_t ledc_channel = {
         .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL,
+        .channel        = LEDC_CHANNEL_M1,
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
-        .gpio_num       = MOTOR_ENA_GPIO,
+        .gpio_num       = MOTOR1_EN_GPIO,
         .duty           = 0,
         .hpoint         = 0
     };
     ledc_channel_config(&ledc_channel);
+
+    ledc_channel.channel = LEDC_CHANNEL_M2;
+    ledc_channel.gpio_num = MOTOR2_EN_GPIO;
+    ledc_channel_config(&ledc_channel);
+
+    ESP_LOGI(TAG, "Motor1: IN1=GPIO%d IN2=GPIO%d EN=GPIO%d (LEDC ch%d)",
+             MOTOR1_IN1_GPIO, MOTOR1_IN2_GPIO, MOTOR1_EN_GPIO, LEDC_CHANNEL_M1);
+    ESP_LOGI(TAG, "Motor2: IN1=GPIO%d IN2=GPIO%d EN=GPIO%d (LEDC ch%d)",
+             MOTOR2_IN1_GPIO, MOTOR2_IN2_GPIO, MOTOR2_EN_GPIO, LEDC_CHANNEL_M2);
 
     motor_update_hw();
 

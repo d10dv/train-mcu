@@ -6,7 +6,7 @@ static const char *TAG = "LIGHT_CTRL";
 
 #define LIGHT_HEAD_GPIO 32
 #define LIGHT_TAIL_GPIO 33
-#define LIGHT_CABIN_GPIO 18
+#define LIGHT_CABIN_GPIO 13
 
 static bool s_head_state = false;
 static bool s_tail_state = false;

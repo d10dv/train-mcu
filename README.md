@@ -41,22 +41,30 @@ graph TD
         ESP_G25[GPIO 25]
         ESP_G26[GPIO 26]
         ESP_G27[GPIO 27 PWM]
+        ESP_G18[GPIO 18]
+        ESP_G19[GPIO 19]
+        ESP_G17[GPIO 17 PWM]
         ESP_G32[GPIO 32]
         ESP_G33[GPIO 33]
-        ESP_G18[GPIO 18]
-        ESP_G19[GPIO 19 PWM]
+        ESP_G13[GPIO 13]
+        ESP_G14[GPIO 14 PWM]
     end
 
     subgraph Drive_&_Peripherals
         ESP_G25 --> L298_IN1[L298N IN1]
         ESP_G26 --> L298_IN2[L298N IN2]
         ESP_G27 --> L298_ENA[L298N ENA]
-        L298_OUT[L298N OUT1/2] --> MOTOR[Train Motor]
+        L298_OUT[L298N OUT1/2] --> MOTOR[Train Motor 1]
+
+        ESP_G18 --> L298_IN3[L298N IN3]
+        ESP_G19 --> L298_IN4[L298N IN4]
+        ESP_G17 --> L298_ENB[L298N ENB]
+        L298_OUT2[L298N OUT3/4] --> MOTOR2[Train Motor 2]
 
         ESP_G32 --> LED_H[Head LED]
         ESP_G33 --> LED_T[Tail LED]
-        ESP_G18 --> LED_C[Cabin LED]
-        ESP_G19 --> BUZZER[Piezo Horn]
+        ESP_G13 --> LED_C[Cabin LED]
+        ESP_G14 --> BUZZER[Piezo Horn]
     end
 
     GND[Common GND] --- BAT
@@ -68,22 +76,40 @@ graph TD
 
 | L298N Pin | ESP32 Pin | Function |
 |:---:|:---:|:---|
-| **ENA** | GPIO 27 | PWM Speed Control |
-| **IN1** | GPIO 25 | Direction Logic 1 |
-| **IN2** | GPIO 26 | Direction Logic 2 |
+| **ENA** | GPIO 27 | Motor 1 PWM Speed Control |
+| **IN1** | GPIO 25 | Motor 1 Direction Logic 1 |
+| **IN2** | GPIO 26 | Motor 1 Direction Logic 2 |
+| **ENB** | GPIO 17 | Motor 2 PWM Speed Control |
+| **IN3** | GPIO 18 | Motor 2 Direction Logic 1 |
+| **IN4** | GPIO 19 | Motor 2 Direction Logic 2 |
 | **VCC** | Battery (+) | Motor Power (7-12V) |
 | **GND** | GND | Common Ground |
+
+Both motors are driven synchronously: one speed/direction command applies to both L298N channels.
 
 ## 🛠 Hardware Architecture
 
 | Component | Signal | ESP32 GPIO (Default) |
 |-----------|--------|----------------------|
-| **Motor (L298)** | IN1 / IN2 / ENA (PWM) | 25 / 26 / 27 |
-| **Lights**| Head / Tail / Cabin | 32 / 33 / 18 |
-| **Horn**  | Piezo Buzzer (PWM) | 19 |
+| **Motors (L298)** | IN1 / IN2 / ENA (PWM) | 25 / 26 / 27 |
+|                  | IN3 / IN4 / ENB (PWM) | 18 / 19 / 17 |
+| **Lights**| Head / Tail / Cabin | 32 / 33 / 13 |
+| **Horn**  | Piezo Buzzer (PWM) | 14 |
 | **Battery**| Voltage Divider (ADC) | 36 (ADC1_CH0) |
 
 *Note: GPIO pins can be reconfigured in component headers.*
+
+### Planned Peripherals — Proposed Pinout
+
+> ⚠️ **Not implemented yet**: there is currently no encoder or display driver in the codebase (no `encoder`/`display` components, nothing in `PLAN.md`). The pinout below is a **proposal for future wiring** — verify before soldering.
+
+Used GPIOs: 13, 14, 17, 18, 19, 25, 26, 27, 32, 33, 36 → free: 4, 5, 15, 16, 21, 22, 23 (input-only 34/35/39 are avoided to keep internal pull-ups available).
+
+| Peripheral | Signal | ESP32 GPIO | Notes |
+|------------|--------|:---:|:---|
+| **Rotary Encoder** (KY-040) | Channel A / Channel B | 13 / 14 | With internal pull-ups; ISR-capable |
+| | Push button (SW) | 15 | Active-low, internal pull-up |
+| **OLED Display** (SSD1306, I2C) | SDA / SCL | 21 / 22 | Default ESP32 I2C pins, `esp_lcd` SSD1306 driver available in ESP-IDF |
 
 ## 📂 Project Structure
 
