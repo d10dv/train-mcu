@@ -1,10 +1,19 @@
 #include "train_config.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include <string.h>
 
 static const char *TAG = "TRAIN_CONFIG";
 static train_config_t s_config;
+
+static void generate_unique_id(char *id_buf, size_t buf_size)
+{
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    // Format: L-XXXXXX (8 characters total) where XXXXXX are the last 3 bytes of MAC
+    snprintf(id_buf, buf_size, "L-%02x%02x%02x", mac[3], mac[4], mac[5]);
+}
 
 esp_err_t train_config_init(void)
 {
@@ -12,7 +21,8 @@ esp_err_t train_config_init(void)
     esp_err_t err;
 
     // Set defaults
-    strcpy(s_config.id, "loco1");
+    generate_unique_id(s_config.id, sizeof(s_config.id));
+    
     strcpy(s_config.model, "steam");
     s_config.accel_rate = 50;
     s_config.decel_rate = 50;
