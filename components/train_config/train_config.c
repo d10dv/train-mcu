@@ -27,6 +27,7 @@ esp_err_t train_config_init(void)
     s_config.accel_rate = 50;
     s_config.decel_rate = 50;
     s_config.max_speed = 100;
+    s_config.min_duty = 40;
 
     err = nvs_open("storage", NVS_READWRITE, &handle);
     if (err != ESP_OK) {
@@ -49,6 +50,7 @@ esp_err_t train_config_init(void)
     nvs_get_i32(handle, "accel_rate", &s_config.accel_rate);
     nvs_get_i32(handle, "decel_rate", &s_config.decel_rate);
     nvs_get_i32(handle, "max_speed", &s_config.max_speed);
+    nvs_get_i32(handle, "min_duty", &s_config.min_duty);
 
     nvs_close(handle);
     return ESP_OK;
@@ -74,6 +76,11 @@ esp_err_t train_config_set_int(const char* param, int32_t value)
     } else if (strcmp(param, "max_speed") == 0) {
         s_config.max_speed = value;
         err = nvs_set_i32(handle, "max_speed", value);
+    } else if (strcmp(param, "min_duty") == 0) {
+        if (value < 0) value = 0;
+        if (value > 95) value = 95;
+        s_config.min_duty = value;
+        err = nvs_set_i32(handle, "min_duty", value);
     } else {
         err = ESP_ERR_NOT_FOUND;
     }

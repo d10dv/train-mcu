@@ -51,13 +51,22 @@ static void motor_update_hw(void)
     gpio_set_level(MOTOR2_IN2_GPIO, in2);
 
     const train_config_t* cfg = train_config_get();
-    uint32_t duty = (s_current_speed * ((1 << LEDC_DUTY_RES) - 1) * cfg->max_speed) / 10000;
+    // Dead-zone compensation: the motor only starts moving at min_duty% PWM,
+    // so map speed 1..100 linearly onto duty range [min_duty..max] instead of [0..max].
+    const uint32_t duty_max = (1 << LEDC_DUTY_RES) - 1;
+    const uint32_t duty_min = ((uint32_t)cfg->min_duty * duty_max) / 100;
+    uint32_t duty = 0;
+    if (s_current_speed > 0) {
+        uint32_t full = ((uint32_t)s_current_speed * duty_max * (uint32_t)cfg->max_speed) / 10000;
+        duty = duty_min + (full * (duty_max - duty_min)) / duty_max;
+        if (duty < duty_min) duty = duty_min;
+    }
     ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_M1, duty);
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_M1);
     ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_M2, duty);
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_M2);
-    ESP_LOGI(TAG, "HW update: speed=%d dir=%s duty=%u (both motors)", s_current_speed,
-             (s_direction == DIRECTION_FORWARD) ? "FWD" : "REV", duty);
+    ESP_LOGI(TAG, "HW update: speed=%d dir=%s duty=%u/%u (both motors)", s_current_speed,
+             (s_direction == DIRECTION_FORWARD) ? "FWD" : "REV", duty, duty_max);
 }
 
 static void motor_task(void *pvParameters)

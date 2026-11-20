@@ -10,6 +10,7 @@ typedef struct {
     int32_t accel_rate;
     int32_t decel_rate;
     int32_t max_speed;
+    int32_t min_duty;   // PWM duty (%) at which the motor starts moving (dead-zone compensation)
 } train_config_t;
 
 /**
