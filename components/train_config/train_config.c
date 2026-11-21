@@ -24,7 +24,7 @@ esp_err_t train_config_init(void)
     generate_unique_id(s_config.id, sizeof(s_config.id));
     
     strcpy(s_config.model, "steam");
-    s_config.accel_rate = 50;
+    s_config.accel_rate = 5;   // speed % per 100 ms tick -> full 0..100% ramp takes ~2 s
     s_config.decel_rate = 50;
     s_config.max_speed = 100;
     s_config.min_duty = 40;

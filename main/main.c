@@ -8,6 +8,7 @@
 #include "wifi_sta.h"
 #include "mqtt_client_app.h"
 #include "motor_driver.h"
+#include "command_queue.h"
 #include "light_ctrl.h"
 #include "horn.h"
 #include "battery_monitor.h"
@@ -40,6 +41,9 @@ void app_main(void)
 
     // 5. motor_driver — инициализация PWM, H-мост
     ESP_ERROR_CHECK(motor_driver_init());
+
+    // 5.5 command_queue — очередь команд и диспетчер
+    ESP_ERROR_CHECK(command_queue_init());
 
     // 6. light_ctrl — инициализация GPIO
     ESP_ERROR_CHECK(light_ctrl_init());
